@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatFreeGPT</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favi.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <button class="new-chat-btn" id="newChatBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    New Chat
+                </button>
+            </div>
+
+            <div class="conversation-list" id="conversationList">
+                <div class="conversation-group">
+                    <div class="conversation-group-title">No conversations yet</div>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="model-selector">
+                    <label for="modelSelect">Model</label>
+                    <select id="modelSelect">
+                        <option value="llama3.2">llama3.2</option>
+                    </select>
+                </div>
+            </div>
+        </aside>
+
+        <div class="sidebar-overlay"></div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="main-header">
+                <div class="header-left">
+                    <button class="toggle-sidebar-btn" id="toggleSidebar">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
+                    <span class="app-title">ChatFreeGPT</span>
+                </div>
+                <div class="header-right">
+                    <div class="status-indicator">
+                        <span class="status-dot" id="statusDot"></span>
+                        <span id="statusText">Connecting...</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Chat Area -->
+            <div class="chat-area" id="chatArea">
+                <!-- Welcome Screen -->
+                <div class="welcome-screen" id="welcomeScreen">
+                    <div class="welcome-logo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                    </div>
+                    <h1 class="welcome-title">Welcome to ChatFreeGPT</h1>
+                    <p class="welcome-subtitle">Your personal AI assistant with browser automation. Ask me anything or try one of the capabilities below.</p>
+
+                    <div class="capabilities">
+                        <div class="capability-card" data-prompt="Play Shape of You by Ed Sheeran on YouTube">
+                            <div class="capability-icon">&#127925;</div>
+                            <div class="capability-title">YouTube Playback</div>
+                            <div class="capability-desc">Play music and videos directly</div>
+                        </div>
+                        <div class="capability-card" data-prompt="Send an email to friend@example.com about weekend plans">
+                            <div class="capability-icon">&#9993;</div>
+                            <div class="capability-title">Email Composer</div>
+                            <div class="capability-desc">Draft and open Gmail compose</div>
+                        </div>
+                        <div class="capability-card" data-prompt="Search for the latest news about AI">
+                            <div class="capability-icon">&#128269;</div>
+                            <div class="capability-title">Web Search</div>
+                            <div class="capability-desc">Search Google or DuckDuckGo</div>
+                        </div>
+                        <div class="capability-card" data-prompt="What's the weather like today?">
+                            <div class="capability-icon">&#128172;</div>
+                            <div class="capability-title">General Chat</div>
+                            <div class="capability-desc">Answer questions on any topic</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Messages Container -->
+                <div id="messagesContainer"></div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="input-area">
+                <div class="input-container">
+                    <div class="input-wrapper">
+                        <textarea
+                            id="messageInput"
+                            placeholder="Message ChatFreeGPT..."
+                            rows="1"
+                            disabled
+                        ></textarea>
+                        <button class="send-btn" id="sendBtn" disabled>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="quick-actions">
+                        <button class="quick-action" data-action="youtube">
+                            <span>&#127925;</span> YouTube
+                        </button>
+                        <button class="quick-action" data-action="gmail">
+                            <span>&#9993;</span> Gmail
+                        </button>
+                        <button class="quick-action" data-action="search">
+                            <span>&#128269;</span> Search
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

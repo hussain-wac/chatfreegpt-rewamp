@@ -1,0 +1,228 @@
+body, h1, h2, p, ul, li, input, button {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background-image: url('214424.gif');
+    background-size: cover;
+    background-color: #f5f5f5;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.welcome-message {
+    font-family: 'Montserrat', sans-serif; /* Change font-family to Montserrat */
+    font-size: 24px;
+    font-weight: bold; /* Make the text bold */
+    color: rgb(255, 255, 255);
+    background-color: #494949;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.chat-container {
+    width: calc(30% + 15px); /* Adjust width to accommodate scrollbar */
+    height: 90vh;
+    background-image: url('8OdG.gif');
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    border-radius: 12px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+    overflow: hidden; /* Hide overflow */
+    display: flex;
+    flex-direction: column;
+}
+
+/* Hide scrollbar in webkit browsers */
+.chat-container::-webkit-scrollbar {
+    width: 0; /* Set width to 0 */
+    height: 0; /* Set height to 0 */
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto; /* Use auto instead of scroll */
+    list-style-type: none;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.chat-header {
+    background-color: #1b1b1b;
+    color: #fff;
+    padding: 20px;
+    text-align: center;
+    font-size: large;
+}
+
+/* Common styles for messages */
+.message {
+    max-width: 80%;
+    margin-bottom: 15px;
+    padding: 15px;
+    border-radius: 12px;
+    animation: popUp 0.5s ease-out, slideIn 0.5s ease-out;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+    position: relative;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    word-wrap: break-word;
+    display: inline-block;
+}
+
+/* User and bot message specific styles */
+.user-message {
+    background-color: #414040;
+    align-self: flex-end; /* Align to the right */
+    margin-right: 10px;
+    color: #fff;
+    text-align: right;
+    animation: userPopIn 0.3s ease-out, fadeIn 0.5s ease-in;
+    max-width: 80%;
+    margin-bottom: 15px;
+    padding: 15px;
+    border-radius: 10px;
+    position: relative; /* Enable positioning */
+}
+
+.bot-message {
+    background-color: #14584a;
+    align-self: flex-start;
+    margin-left: 10px;
+    text-align: left;
+    color: #fff;
+    animation: botPopIn 0.3s ease-out, fadeIn 0.5s ease-in;
+    max-width: 80%;
+    margin-bottom: 15px;
+    padding: 15px;
+    border-radius: 10px;
+    position: relative; /* Enable positioning */
+}
+
+/* Hover effect */
+.user-message:hover, .bot-message:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Animation keyframes */
+@keyframes popUp {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    80% {
+        transform: scale(1.1);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes slideIn {
+    0% {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes userPopIn {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    80% {
+        transform: scale(1.1);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes botPopIn {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    80% {
+        transform: scale(1.1);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes fadeIn {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Container for the messages */
+.message-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+/* Align user messages to the right */
+.message-container .user-message {
+    align-self: flex-end;
+}
+
+.chat-input-container {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    box-shadow: 0 -3px 6px rgba(0, 0, 0, 0.1); /* Added shadow effect */
+}
+
+#user_input {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    color:  #ffffff ;
+    border-radius: 25px; /* Rounded border */
+    background-color: #3a3939; /* Light gray background */
+    outline: none; /* Remove outline */
+    font-size: 16px; /* Adjust font size */
+    margin-right: 10px; /* Add some space from the send button */
+}
+
+#send_button {
+    background-color: #007745;
+    color: #fff;
+    border: none;
+    padding: 18px 20px; /* Adjust padding */
+    border-radius: 50%; /* Make it circular */
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: background-color 0.3s ease; /* Added transition effect */
+}
+
+#send_button:hover {
+    background-color: #00975d; /* Darker shade on hover */
+}
+
+#send_icon {
+    margin-right: 0; /* Remove margin for better alignment */
+}
