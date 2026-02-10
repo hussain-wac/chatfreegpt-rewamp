@@ -17,7 +17,7 @@ fi
 # Start backend
 echo "Starting Python backend..."
 cd "$(dirname "$0")"
-source venv/bin/activate
+source env/bin/activate
 python app.py &
 BACKEND_PID=$!
 
@@ -27,7 +27,7 @@ sleep 2
 # Start frontend
 echo "Starting React frontend..."
 cd frontend
-npm run dev &
+yarn dev &
 FRONTEND_PID=$!
 
 echo ""

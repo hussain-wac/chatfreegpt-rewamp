@@ -1,55 +1,141 @@
 @import "tailwindcss";
 
-/* Custom scrollbar */
+/* ========== Scrollbar ========== */
 ::-webkit-scrollbar {
-  width: 8px;
+    width: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+    background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-700 rounded;
+    @apply bg-gray-700/50 rounded-full;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-600;
+    @apply bg-gray-600;
 }
 
-/* Typing animation */
+.scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+}
+
+/* ========== Typing Animation ========== */
 @keyframes typing {
-  0%, 60%, 100% {
-    transform: translateY(0);
-    opacity: 0.4;
-  }
-  30% {
-    transform: translateY(-4px);
-    opacity: 1;
-  }
+    0%,
+    60%,
+    100% {
+        transform: translateY(0);
+        opacity: 0.3;
+    }
+    30% {
+        transform: translateY(-4px);
+        opacity: 1;
+    }
 }
 
 .typing-dot {
-  animation: typing 1.4s infinite;
+    animation: typing 1.4s ease-in-out infinite;
 }
 
 .typing-dot:nth-child(2) {
-  animation-delay: 0.2s;
+    animation-delay: 0.15s;
 }
 
 .typing-dot:nth-child(3) {
-  animation-delay: 0.4s;
+    animation-delay: 0.3s;
 }
 
-/* Code blocks */
-pre {
-  @apply bg-gray-900 rounded-lg p-4 overflow-x-auto my-3;
+/* ========== Fade-in Animation ========== */
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
 }
 
-code {
-  @apply font-mono text-sm;
+.animate-fade-in {
+    animation: fade-in 0.2s ease-out;
 }
 
-:not(pre) > code {
-  @apply bg-gray-700 px-1.5 py-0.5 rounded;
+/* ========== Markdown Content ========== */
+.markdown-body {
+    line-height: 1.75;
+    word-break: break-word;
+}
+
+.markdown-body > *:first-child {
+    margin-top: 0;
+}
+
+.markdown-body > *:last-child {
+    margin-bottom: 0;
+}
+
+/* Code block wrapper */
+.code-block-wrapper {
+    background: #0d1117;
+}
+
+.code-block-wrapper pre {
+    margin: 0 !important;
+    border-radius: 0 !important;
+    background: #0d1117 !important;
+}
+
+/* Inline code */
+.markdown-body :not(pre) > code {
+    @apply bg-gray-700/60 px-1.5 py-0.5 rounded-md text-sm font-mono;
+    color: #f0a8d0;
+}
+
+/* Tables */
+.markdown-body table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+/* Blockquote */
+.markdown-body blockquote p {
+    margin: 0;
+}
+
+/* ========== Selection ========== */
+::selection {
+    background: rgba(99, 102, 241, 0.25);
+}
+
+/* ========== Smooth scrolling ========== */
+html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ========== Mobile safe area ========== */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .pb-safe {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+}
+
+/* ========== Focus visible ========== */
+*:focus-visible {
+    @apply outline-2 outline-offset-2 outline-blue-500;
+}
+
+/* ========== Responsive code blocks ========== */
+@media (max-width: 640px) {
+    .code-block-wrapper pre {
+        font-size: 0.75rem !important;
+    }
+
+    .markdown-body pre {
+        margin-left: -0.5rem;
+        margin-right: -0.5rem;
+        border-radius: 0.75rem;
+    }
 }

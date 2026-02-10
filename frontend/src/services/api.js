@@ -1,4 +1,4 @@
-const API_BASE = '/api';
+const API_BASE = "/api";
 
 export const api = {
   async checkHealth() {
@@ -11,49 +11,138 @@ export const api = {
     return response.json();
   },
 
-  async sendMessage(message, model) {
+  async sendMessage(message, model, conversationId) {
     const response = await fetch(`${API_BASE}/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, model }),
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, model, conversation_id: conversationId }),
     });
     return response.json();
   },
 
-  async streamMessage(message, model, onChunk) {
+  async streamMessage(message, model, onChunk, history, signal) {
     const response = await fetch(`${API_BASE}/chat/stream`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, model }),
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, model, history }),
+      signal,
     });
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
-    let fullResponse = '';
+    let fullResponse = "";
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-      const chunk = decoder.decode(value);
-      fullResponse += chunk;
-      onChunk(fullResponse);
+        const chunk = decoder.decode(value);
+        fullResponse += chunk;
+        onChunk(fullResponse);
+      }
+    } catch (err) {
+      if (err.name === "AbortError") {
+        // User stopped generation — return what we have so far
+      } else {
+        throw err;
+      }
     }
 
     return fullResponse;
   },
 
+  async searchStream(
+    message,
+    model,
+    onChunk,
+    history,
+    signal,
+    onImages,
+    onSources,
+  ) {
+    const response = await fetch(`${API_BASE}/chat/search-stream`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, model, history }),
+      signal,
+    });
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let fullResponse = "";
+    let prefixParsed = false;
+    const DELIMITER = "\n---STREAM---\n";
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+
+        if (!prefixParsed) {
+          buffer += chunk;
+          const delimIdx = buffer.indexOf(DELIMITER);
+          if (delimIdx !== -1) {
+            // Parse the JSON prefix for images
+            const prefix = buffer.substring(0, delimIdx);
+            try {
+              const meta = JSON.parse(prefix);
+              if (meta.images && onImages) {
+                onImages(meta.images);
+              }
+              if (meta.sources && onSources) {
+                onSources(meta.sources);
+              }
+            } catch {
+              // Prefix parse failed — ignore images
+            }
+            // Rest after delimiter is the start of the text stream
+            const rest = buffer.substring(delimIdx + DELIMITER.length);
+            prefixParsed = true;
+            if (rest) {
+              fullResponse += rest;
+              onChunk(fullResponse);
+            }
+          }
+        } else {
+          fullResponse += chunk;
+          onChunk(fullResponse);
+        }
+      }
+    } catch (err) {
+      if (err.name === "AbortError") {
+        // User stopped generation
+      } else {
+        throw err;
+      }
+    }
+
+    return fullResponse;
+  },
+
+  async search(query) {
+    const response = await fetch(`${API_BASE}/search`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query }),
+    });
+    return response.json();
+  },
+
   async executeTask(type, params) {
     const response = await fetch(`${API_BASE}/execute-task`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type, params }),
     });
     return response.json();
   },
 
   async clearConversation() {
-    const response = await fetch(`${API_BASE}/clear`, { method: 'POST' });
+    const response = await fetch(`${API_BASE}/clear`, { method: "POST" });
     return response.json();
   },
 
@@ -64,8 +153,8 @@ export const api = {
 
   async saveConversations(conversations) {
     const response = await fetch(`${API_BASE}/conversations`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(conversations),
     });
     return response.json();
@@ -73,7 +162,7 @@ export const api = {
 
   async deleteConversation(id) {
     const response = await fetch(`${API_BASE}/conversations/${id}`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
     return response.json();
   },
@@ -92,5 +181,5 @@ export function parseTaskMarkers(text) {
 }
 
 export function removeTaskMarkers(text) {
-  return text.replace(/\[TASK:\w+:[^\]]+\]/g, '').trim();
+  return text.replace(/\[TASK:\w+:[^\]]+\]/g, "").trim();
 }

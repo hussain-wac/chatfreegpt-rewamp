@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { useChat } from './hooks/useChat';
-import { Sidebar } from './components/Sidebar';
-import { Header } from './components/Header';
-import { ChatArea } from './components/ChatArea';
-import { MessageInput } from './components/MessageInput';
+import { useState } from "react";
+import { useChat } from "./hooks/useChat";
+import { Sidebar } from "./components/Sidebar";
+import { Header } from "./components/Header";
+import { ChatArea } from "./components/ChatArea";
+import { MessageInput } from "./components/MessageInput";
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -18,6 +18,8 @@ function App() {
     currentModel,
     setCurrentModel,
     sendMessage,
+    sendMessageWithSearch,
+    stopGenerating,
     newChat,
     loadConversation,
     deleteConversation,
@@ -29,7 +31,7 @@ function App() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-950 text-gray-100">
+    <div className="flex h-dvh bg-gray-950 text-gray-100 overflow-hidden">
       {/* Sidebar */}
       <Sidebar
         conversations={conversations}
@@ -51,9 +53,10 @@ function App() {
       />
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0">
+      <main className="flex-1 flex flex-col min-w-0 relative">
         <Header
           isHealthy={isHealthy}
+          currentModel={currentModel}
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
         />
 
@@ -65,6 +68,8 @@ function App() {
 
         <MessageInput
           onSend={sendMessage}
+          onSendWithSearch={sendMessageWithSearch}
+          onStop={stopGenerating}
           isDisabled={!isHealthy}
           isLoading={isLoading}
         />

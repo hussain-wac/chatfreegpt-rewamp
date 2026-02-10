@@ -5,7 +5,10 @@ import os
 from flask import Flask, request, jsonify, Response, stream_with_context
 from flask_cors import CORS
 from dotenv import load_dotenv
-from main import process_query, process_query_stream, clear_conversation, list_models
+from main import (
+    process_query, process_query_stream, clear_conversation,
+    list_models, remove_task_markers, web_search, web_search_images
+)
 from tasks import YouTubeTask, GmailTask, BrowserTask, SearchTask
 import ollama
 
@@ -62,6 +65,96 @@ def save_conversations():
         print(f"Error saving conversations: {e}")
 
 
+def get_conversation_history(conversation_id):
+    """Get message history for a conversation, formatted for the AI."""
+    if not conversation_id or conversation_id not in conversations:
+        return []
+
+    convo = conversations[conversation_id]
+    messages = convo.get('messages', [])
+
+    return clean_message_history(messages)
+
+
+def clean_message_history(messages):
+    """Clean a list of messages for AI context (remove task markers, limit size)."""
+    history = []
+    for msg in messages[-20:]:  # Last 20 messages
+        role = msg.get('role', 'user')
+        content = msg.get('content', '')
+        if role == 'assistant':
+            content = remove_task_markers(content)
+        history.append({'role': role, 'content': content})
+    return history
+
+
+def build_search_query(user_input, history):
+    """Build a contextual search query from user input and conversation history.
+
+    If the user's message is vague (e.g. "is he a good singer"), combine it
+    with recent user messages to form a meaningful search query.
+    Only uses user messages to avoid polluting search with AI response text.
+    """
+    # Only grab recent USER messages for context (skip assistant responses)
+    recent_user = [
+        msg.get('content', '')[:80]
+        for msg in (history[-6:] if history else [])
+        if msg.get('role') == 'user' and msg.get('content', '')
+    ]
+    # Take last 2 user messages as context (not the current one)
+    context = recent_user[-2:] if len(recent_user) > 0 else []
+
+    if context:
+        return ' '.join(context) + ' ' + user_input
+
+    return user_input
+
+
+def should_fetch_images(query):
+    """Determine if a query would benefit from image results.
+
+    Returns True for queries about people, places, animals, products,
+    landmarks, etc. Returns False for abstract/conceptual questions.
+    """
+    q = query.lower().strip()
+
+    # Keywords that suggest visual content is useful
+    visual_keywords = [
+        'who is', 'who was', 'who were',
+        'show me', 'picture of', 'photo of', 'images of', 'look like', 'looks like',
+        'where is', 'where are',
+        'celebrity', 'actor', 'actress', 'singer', 'player', 'athlete',
+        'flag of', 'logo of', 'brand',
+        'mountain', 'beach', 'island',
+        'painting', 'artwork',
+    ]
+
+    # Keywords that suggest NO images needed (abstract/conceptual)
+    no_image_keywords = [
+        'what is', 'what are', 'how to', 'why', 'explain', 'define',
+        'difference between', 'meaning of', 'tutorial', 'guide',
+        'code', 'programming', 'error', 'bug', 'fix',
+        'best way', 'how can i', 'should i', 'help me',
+        'calculate', 'convert', 'translate',
+        'who are you', 'your name', 'your creator', 'who made you', 'who built you',
+        'create', 'generate', 'make me', 'draw', 'write',
+        'can you', 'do you', 'are you', 'tell me',
+    ]
+
+    # Check no-image keywords first (higher priority)
+    for keyword in no_image_keywords:
+        if keyword in q:
+            return False
+
+    # Check visual keywords
+    for keyword in visual_keywords:
+        if keyword in q:
+            return True
+
+    # Default: no images for generic queries
+    return False
+
+
 # Load conversations on startup
 load_conversations()
 
@@ -72,11 +165,13 @@ def chat():
     data = request.get_json()
     user_input = data.get('message', '')
     model = data.get('model', DEFAULT_MODEL)
+    conversation_id = data.get('conversation_id')
 
     if not user_input.strip():
         return jsonify({"error": "Please enter a message."}), 400
 
-    response = process_query(user_input, model=model)
+    history = get_conversation_history(conversation_id)
+    response = process_query(user_input, model=model, history=history)
     return jsonify({"response": response})
 
 
@@ -86,18 +181,102 @@ def chat_stream():
     data = request.get_json()
     user_input = data.get('message', '')
     model = data.get('model', DEFAULT_MODEL)
+    history = data.get('history', [])
 
     if not user_input.strip():
         return jsonify({"error": "Please enter a message."}), 400
 
+    # Clean history (remove task markers from assistant messages)
+    clean_history = clean_message_history(history)
+
     def generate():
         try:
-            for chunk in process_query_stream(user_input, model=model):
+            for chunk in process_query_stream(user_input, model=model, history=clean_history):
                 yield chunk
         except Exception as e:
             yield f"Error: {str(e)}"
 
     return Response(stream_with_context(generate()), mimetype='text/plain')
+
+
+@app.route('/api/chat/search-stream', methods=['POST'])
+def chat_search_stream():
+    """Handle chat with web search augmentation."""
+    data = request.get_json()
+    user_input = data.get('message', '')
+    model = data.get('model', DEFAULT_MODEL)
+    history = data.get('history', [])
+
+    if not user_input.strip():
+        return jsonify({"error": "Please enter a message."}), 400
+
+    clean_history = clean_message_history(history)
+
+    # Build a contextual search query using recent conversation context
+    search_query = build_search_query(user_input, clean_history)
+
+    # Perform web search
+    search_results = web_search(search_query, max_results=5)
+
+    # Only fetch images when the query is likely about a person, place, animal,
+    # object, or other visual topic — not for general/abstract questions
+    image_results = []
+    if should_fetch_images(user_input):
+        image_results = web_search_images(search_query, max_results=4)
+
+    # Build source list for the frontend (verified real URLs)
+    sources = []
+    for i, result in enumerate(search_results):
+        title = result.get('title', 'No title')
+        url = result.get('href', result.get('url', ''))
+        body = result.get('body', '')
+        if url:
+            sources.append({"number": i + 1, "title": title, "url": url, "body": body[:150]})
+
+    # Format search results as extra context for the AI
+    search_context = "## Web Search Results\n"
+    search_context += f"The user has enabled web search. Search query used: \"{search_query}\"\n"
+    search_context += "Here are the search results:\n\n"
+    for src in sources:
+        search_context += f"[{src['number']}] **{src['title']}**\n   {src['body']}\n\n"
+    if image_results:
+        search_context += "Relevant images have been found and are being displayed to the user above your response.\n"
+    search_context += (
+        "IMPORTANT: Synthesize these results into a helpful response. "
+        "When citing a source, use ONLY the bracket number format like [1], [2], etc. "
+        "Do NOT write out URLs or links — the UI will automatically convert [1], [2] etc. into clickable links. "
+        "Never invent or guess URLs. Use the conversation history to understand what the user is referring to."
+    )
+
+    def generate():
+        try:
+            # Send image + source metadata as JSON prefix before the text stream
+            import json as _json
+            prefix = _json.dumps({"images": image_results, "sources": sources})
+            yield prefix + "\n---STREAM---\n"
+
+            for chunk in process_query_stream(
+                user_input, model=model, history=clean_history,
+                extra_system=search_context
+            ):
+                yield chunk
+        except Exception as e:
+            yield f"Error: {str(e)}"
+
+    return Response(stream_with_context(generate()), mimetype='text/plain')
+
+
+@app.route('/api/search', methods=['POST'])
+def search():
+    """Perform a web search and return results."""
+    data = request.get_json()
+    query = data.get('query', '')
+
+    if not query.strip():
+        return jsonify({"status": "error", "message": "No query provided"}), 400
+
+    results = web_search(query, max_results=5)
+    return jsonify({"status": "success", "results": results})
 
 
 @app.route('/api/execute-task', methods=['POST'])
