@@ -83,8 +83,8 @@ export function Sidebar({
           <button
             onClick={onNewChat}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl
-              bg-gradient-to-r from-blue-600 to-purple-600
-              hover:from-blue-500 hover:to-purple-500
+              bg-blue-500
+              hover:bg-blue-600
               text-white font-medium text-sm
               transition-all duration-200 active:scale-[0.98]
               shadow-lg shadow-blue-500/20"

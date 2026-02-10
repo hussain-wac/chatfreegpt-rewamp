@@ -220,6 +220,17 @@ export function useChat() {
           });
         };
 
+        const onVideo = (videoData) => {
+          setMessages((prev) => {
+            const newMessages = [...prev];
+            newMessages[newMessages.length - 1] = {
+              ...newMessages[newMessages.length - 1],
+              videoData,
+            };
+            return newMessages;
+          });
+        };
+
         const fullResponse = useSearch
           ? await api.searchStream(
               content,
@@ -229,6 +240,7 @@ export function useChat() {
               controller.signal,
               onImages,
               onSources,
+              onVideo,
             )
           : await api.streamMessage(
               content,
@@ -236,6 +248,7 @@ export function useChat() {
               onChunk,
               history,
               controller.signal,
+              onVideo,
             );
 
         // Parse tasks from response
@@ -363,7 +376,10 @@ export function useChat() {
 
   const executeTask = useCallback(async (type, params) => {
     try {
-      await api.executeTask(type, params);
+      const result = await api.executeTask(type, params);
+      if (result.success && result.url) {
+        window.open(result.url, "_blank");
+      }
     } catch (error) {
       console.error("Task execution error:", error);
     }

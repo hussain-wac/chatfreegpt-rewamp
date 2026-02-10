@@ -20,7 +20,7 @@ export const api = {
     return response.json();
   },
 
-  async streamMessage(message, model, onChunk, history, signal) {
+  async streamMessage(message, model, onChunk, history, signal, onVideo) {
     const response = await fetch(`${API_BASE}/chat/stream`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -30,7 +30,10 @@ export const api = {
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
+    let buffer = "";
     let fullResponse = "";
+    let prefixParsed = false;
+    const DELIMITER = "\n---STREAM---\n";
 
     try {
       while (true) {
@@ -38,8 +41,37 @@ export const api = {
         if (done) break;
 
         const chunk = decoder.decode(value);
-        fullResponse += chunk;
-        onChunk(fullResponse);
+
+        if (!prefixParsed) {
+          buffer += chunk;
+          const delimIdx = buffer.indexOf(DELIMITER);
+          if (delimIdx !== -1) {
+            // Parse the JSON prefix for video data
+            const prefix = buffer.substring(0, delimIdx);
+            try {
+              const meta = JSON.parse(prefix);
+              if (meta.video && onVideo) {
+                onVideo(meta.video);
+              }
+            } catch {
+              // No prefix or parse failed — treat entire buffer as text
+            }
+            const rest = buffer.substring(delimIdx + DELIMITER.length);
+            prefixParsed = true;
+            if (rest) {
+              fullResponse += rest;
+              onChunk(fullResponse);
+            }
+          } else if (!buffer.startsWith("{")) {
+            // No JSON prefix — plain text stream
+            prefixParsed = true;
+            fullResponse = buffer;
+            onChunk(fullResponse);
+          }
+        } else {
+          fullResponse += chunk;
+          onChunk(fullResponse);
+        }
       }
     } catch (err) {
       if (err.name === "AbortError") {
@@ -47,6 +79,11 @@ export const api = {
       } else {
         throw err;
       }
+    }
+
+    // If prefix was never parsed (no delimiter found), treat buffer as text
+    if (!prefixParsed) {
+      fullResponse = buffer;
     }
 
     return fullResponse;
@@ -60,6 +97,7 @@ export const api = {
     signal,
     onImages,
     onSources,
+    onVideo,
   ) {
     const response = await fetch(`${API_BASE}/chat/search-stream`, {
       method: "POST",
@@ -95,6 +133,9 @@ export const api = {
               }
               if (meta.sources && onSources) {
                 onSources(meta.sources);
+              }
+              if (meta.video && onVideo) {
+                onVideo(meta.video);
               }
             } catch {
               // Prefix parse failed — ignore images

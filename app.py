@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 from flask import Flask, request, jsonify, Response, stream_with_context
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -9,7 +10,7 @@ from main import (
     process_query, process_query_stream, clear_conversation,
     list_models, remove_task_markers, web_search, web_search_images
 )
-from tasks import YouTubeTask, GmailTask, BrowserTask, SearchTask
+from tasks import YouTubeTask, GmailTask, BrowserTask, SearchTask, find_first_video
 import ollama
 
 # Load environment variables
@@ -175,6 +176,27 @@ def chat():
     return jsonify({"response": response})
 
 
+def detect_youtube_request(query):
+    """Check if user wants to play a YouTube video and extract the search term."""
+    q = query.lower().strip()
+    youtube_patterns = [
+        r'play\s+(.+?)(?:\s+on\s+youtube)?$',
+        r'play\s+(.+?)(?:\s+on\s+yt)?$',
+        r'(?:open|watch|listen\s+to)\s+(.+?)(?:\s+on\s+youtube)?$',
+        r'youtube\s+(.+)',
+        r'(.+?)\s+on\s+youtube',
+    ]
+    for pattern in youtube_patterns:
+        match = re.search(pattern, q)
+        if match:
+            search_term = match.group(1).strip()
+            # Remove trailing "on youtube" / "on yt" if still present
+            search_term = re.sub(r'\s+on\s+(youtube|yt)$', '', search_term).strip()
+            if search_term:
+                return search_term
+    return None
+
+
 @app.route('/api/chat/stream', methods=['POST'])
 def chat_stream():
     """Handle streaming chat requests for real-time responses."""
@@ -189,8 +211,21 @@ def chat_stream():
     # Clean history (remove task markers from assistant messages)
     clean_history = clean_message_history(history)
 
+    # Detect YouTube intent and search before streaming
+    video_data = None
+    yt_query = detect_youtube_request(user_input)
+    if yt_query:
+        video_data = find_first_video(yt_query)
+        if video_data:
+            video_data["query"] = yt_query
+
     def generate():
         try:
+            # Send video metadata as JSON prefix if found
+            if video_data:
+                prefix = json.dumps({"video": video_data})
+                yield prefix + "\n---STREAM---\n"
+
             for chunk in process_query_stream(user_input, model=model, history=clean_history):
                 yield chunk
         except Exception as e:
@@ -250,9 +285,11 @@ def chat_search_stream():
 
     def generate():
         try:
-            # Send image + source metadata as JSON prefix before the text stream
-            import json as _json
-            prefix = _json.dumps({"images": image_results, "sources": sources})
+            # Send image + source + video metadata as JSON prefix before the text stream
+            prefix_data = {"images": image_results, "sources": sources}
+            if video_data:
+                prefix_data["video"] = video_data
+            prefix = json.dumps(prefix_data)
             yield prefix + "\n---STREAM---\n"
 
             for chunk in process_query_stream(

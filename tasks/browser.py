@@ -1,6 +1,5 @@
 """Browser and search task handlers."""
 
-import webbrowser
 import urllib.parse
 from .base import TaskHandler, TaskResult
 
@@ -26,8 +25,6 @@ class BrowserTask(TaskHandler):
             # Add https:// if no protocol specified
             if not url.startswith(('http://', 'https://')):
                 url = f'https://{url}'
-
-            webbrowser.open(url)
 
             return TaskResult(
                 success=True,
@@ -75,8 +72,6 @@ class SearchTask(TaskHandler):
                 url = f"https://duckduckgo.com/?q={query}"
             else:
                 url = f"https://www.google.com/search?q={query}"
-
-            webbrowser.open(url)
 
             return TaskResult(
                 success=True,

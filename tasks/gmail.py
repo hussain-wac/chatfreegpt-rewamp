@@ -1,6 +1,5 @@
 """Gmail task handler."""
 
-import webbrowser
 import urllib.parse
 from .base import TaskHandler, TaskResult
 
@@ -37,8 +36,6 @@ class GmailTask(TaskHandler):
                 gmail_url += f"&su={urllib.parse.quote(subject)}"
             if body:
                 gmail_url += f"&body={urllib.parse.quote(body)}"
-
-            webbrowser.open(gmail_url)
 
             return TaskResult(
                 success=True,
